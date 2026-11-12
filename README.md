@@ -5,7 +5,7 @@
 > 
 > Claude Code was used to create this configuration, install scripts, and documentation
 
-A minimal-chrome, glass-friendly VSCodium setup. Built for Arch + Hyprland and portable to macOS and Windows. It covers the UI only and installs no extensions.
+A minimal-chrome, glass-friendly VSCodium setup. Built for Arch + Hyprland and portable to macOS and Windows. It covers the UI only. The one extension it installs is its own colour theme, linked from this repo; nothing comes from a marketplace.
 
 ```
 User/settings.json        portable UI settings (the main file)
@@ -13,6 +13,8 @@ User/keybindings.json     toggles to bring hidden UI back on demand
 linux/codium-flags.conf   Electron launch flags (Arch vscodium-bin reads ~/.config/codium-flags.conf)
 linux/hypr/vscodium.lua   Hyprland opacity rule
 linux/codium-term         Hyprland launcher: opens VSCodium with the terminal panel focused
+theme/build.py            generates the Greenpuccin theme from the Figcraft export
+theme/greenpuccin/        the generated theme (a local extension; don't edit by hand)
 install.sh                Linux/macOS: symlinks everything, backs up what's there
 install.ps1               Windows: symlinks (or copies without Developer Mode)
 ```
@@ -42,7 +44,36 @@ Files are **symlinked**, so changes made in the Settings UI are written back to 
 | Inlay hints | Shown only while you hold **Ctrl+Alt** |
 | Terminal | No per-command gutter dots, no "ask AI" hint, tab list only when there are 2+ terminals |
 | Startup | No welcome page, walkthroughs, tips or extension recommendations |
-| Theme | `Dark 2026`, with every surface set to `#16161a` and all 1px borders set to transparent |
+| Theme | Greenpuccin Matcha (see below): every surface one flat colour, all 1px borders transparent |
+
+## Theme: Greenpuccin
+
+`theme/build.py` turns the Figcraft variables export (`theme/Greenpuccin.variables.json`) into two
+themes: **Greenpuccin Matcha** (dark, the default) and **Greenpuccin Sencha** (light). Every colour
+comes from the palette, sometimes with transparency added. The themes don't build on any built-in theme,
+and they set all ~900 colour keys VSCodium registers, so no stock colour shows through. The build
+fails if any value falls outside the palette.
+
+How each colour is chosen:
+
+1. `EXPLICIT` in `build.py`: the design (one flat `Surface`, raised widgets, sunken inputs, green
+   `Primary` accent, transparent dividers, terminal ANSI colours).
+2. Anything else follows VSCodium's own default for that key. References to other keys are kept, so
+   most surfaces follow `editor.background`, as is transparency. Built-in hex values snap to the nearest palette colour.
+3. Syntax colours are the `TOKENS` and `SEMANTIC` tables (Catppuccin-style roles from `accent-text/*`).
+
+After a design-system change or a VSCodium upgrade:
+
+```sh
+cp ~/Downloads/Greenpuccin.variables.json theme/   # new export from Figcraft
+python3 -I theme/tools/extract-defaults.py           # after a VSCodium upgrade: picks up new colour keys
+python3 -I theme/build.py
+```
+
+Then run **Developer: Reload Window**. The theme folder is linked, so you don't need to reinstall.
+`install.sh` links it to `~/.vscode-oss/extensions/local.greenpuccin` and registers it in
+`extensions.json` (it uses python3 for that step). Switch modes with Ctrl+K Ctrl+T, or set
+`window.autoDetectColorScheme` to follow the OS (the preferred dark and light themes are already set).
 
 ## Toggles
 
@@ -99,7 +130,6 @@ The macOS title bar is the native one (traffic lights), and `SF Mono` in the fon
 
 - `workbench.editor.showTabs: "single"`: one title instead of a tab strip, navigate with Ctrl+P
 - `workbench.activityBar.location: "hidden"` + `workbench.statusBar.visible: false`: editor-only, with everything reached by keyboard
-- Generate the colour block from your Noctalia/wallpaper palette so VSCodium matches the shell
-- A light-theme pair (`[Light 2026]` overrides) with `window.autoDetectColorScheme`
-- Extensions: Custom CSS / Vibrancy for true background-only transparency, a theme, an icon theme
+- Feed the Greenpuccin export into Noctalia too, so the shell matches VSCodium
+- Extensions: Custom CSS / Vibrancy for true background-only transparency, an icon theme
 - Hide the VSCodium logo on empty editors: Custom CSS `.letterpress { display: none }`. No setting exists for it, and swapping `out/media/letterpress-*.svg` needs root and comes back with every update

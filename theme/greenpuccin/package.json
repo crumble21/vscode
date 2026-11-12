@@ -1,0 +1,27 @@
+{
+  "name": "greenpuccin",
+  "displayName": "Greenpuccin",
+  "description": "Greenpuccin colour themes, generated from the Figcraft design-system export by theme/build.py.",
+  "version": "1.0.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Greenpuccin Matcha",
+        "uiTheme": "vs-dark",
+        "path": "./themes/greenpuccin-matcha-color-theme.json"
+      },
+      {
+        "label": "Greenpuccin Sencha",
+        "uiTheme": "vs",
+        "path": "./themes/greenpuccin-sencha-color-theme.json"
+      }
+    ]
+  }
+}

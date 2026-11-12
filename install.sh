@@ -29,6 +29,29 @@ link() {  # link <source> <target>
 link "$repo/User/settings.json"    "$user_dir/settings.json"
 link "$repo/User/keybindings.json" "$user_dir/keybindings.json"
 
+# Greenpuccin theme, as a local extension (the folder is linked, so `theme/build.py` changes show up
+# after Developer: Reload Window). VSCodium only loads folders listed in extensions.json once that file
+# exists, so register it there too.
+ext_dir="${VSCODIUM_EXTENSIONS_DIR:-$HOME/.vscode-oss/extensions}"
+link "$repo/theme/greenpuccin" "$ext_dir/local.greenpuccin"
+if [[ -f "$ext_dir/extensions.json" ]]; then
+    if command -v python3 >/dev/null; then
+        version="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$repo/theme/greenpuccin/package.json" | head -1)"
+        python3 -I - "$ext_dir" "$version" <<'PY'
+import json, os, sys
+ext_dir, version = sys.argv[1:3]
+path, name = os.path.join(ext_dir, "extensions.json"), "local.greenpuccin"
+entries = [e for e in json.load(open(path)) if e.get("identifier", {}).get("id") != name]
+entries.append({"identifier": {"id": name}, "version": version, "relativeLocation": name,
+                "location": {"$mid": 1, "path": os.path.join(ext_dir, name), "scheme": "file"}})
+json.dump(entries, open(path, "w"))
+print(f"registered {name} {version} in {path}")
+PY
+    else
+        echo "warning: python3 not found; add local.greenpuccin to $ext_dir/extensions.json by hand" >&2
+    fi
+fi
+
 if [[ "$(uname -s)" == Linux ]]; then
     link "$repo/linux/codium-flags.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/codium-flags.conf"
     if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
