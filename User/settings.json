@@ -1,5 +1,6 @@
-// VSCodium — quiet UI profile
-// Portable across Linux (Hyprland), macOS and Windows. Linked into place by install.sh / install.ps1.
+// VSCodium / VS Code — quiet UI profile
+// Shared by both editors (they register the same settings). Portable across Linux (Hyprland), macOS
+// and Windows. Linked into place by install.sh / install.ps1.
 // Edits made through the Settings UI land here too (it's a symlink), so `git diff` shows what changed.
 //
 // Dials worth knowing (all togglable from the Command Palette as well):
@@ -26,6 +27,7 @@
     "workbench.activityBar.location": "top",        // icons move into the side bar header; "hidden" to remove entirely
     "workbench.sideBar.location": "left",
     "workbench.secondarySideBar.defaultVisibility": "hidden",
+    "workbench.experimental.modernUI": false,       // VS Code defaults this on (rounded, gapped panels); VSCodium off
     "workbench.panel.showLabels": false,            // icon-only panel tabs (Problems/Output/Terminal…)
     "workbench.startupEditor": "none",
     "workbench.tips.enabled": false,
@@ -82,6 +84,7 @@
     "editor.cursorBlinking": "smooth",
     "editor.cursorSmoothCaretAnimation": "on",
     "editor.smoothScrolling": true,
+    "editor.wordWrap": "on",
 
     // ==== Terminal ====
     "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font', 'JetBrains Mono', 'SF Mono', Menlo, 'Cascadia Code', Consolas, monospace",
@@ -94,7 +97,7 @@
     "terminal.integrated.initialHint": false,
     "terminal.integrated.enablePersistentSessions": false,        // every window starts with a fresh shell: no "History restored" replay
     "terminal.integrated.persistentSessionReviveProcess": "never",
-    // Let the panel-hide chord (pressed by shell/vscodium.zsh) reach VSCodium even when the terminal
+    // Let the panel-hide chord (pressed by shell/editor.zsh) reach the editor even when the terminal
     // has focus, instead of zsh receiving it and printing ";8~".
     "terminal.integrated.commandsToSkipShell": ["workbench.action.closePanel"],
 
@@ -103,5 +106,15 @@
     "zenMode.centerLayout": false,
     "zenMode.hideLineNumbers": false,
     "zenMode.showTabs": "none",
-    "zenMode.restore": true
+    "zenMode.restore": true,
+
+    // ==== Git, trust, extensions ====
+    // Settings for keys an editor doesn't know are ignored, so extension settings are safe to share.
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    "security.workspace.trust.untrustedFiles": "open",
+    "python.languageServer": "Default",
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.hideOnboarding": true
 }

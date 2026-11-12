@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Extract VSCodium's registered colour keys and their built-in defaults.
+"""Extract the editor's registered colour keys and their built-in defaults.
 
-    python3 -I theme/tools/extract-defaults.py [/opt/vscodium-bin/resources/app]
+    python3 -I theme/tools/extract-defaults.py [<editor>/resources/app]
 
-Writes theme/tools/vscode-color-defaults.json. Re-run after a VSCodium upgrade so the theme
-covers any newly added colour keys, then run theme/build.py.
+Defaults to VSCodium (/opt/vscodium-bin), falling back to VS Code (/usr/share/code); both register
+the same colour keys at the same version. Writes theme/tools/vscode-color-defaults.json. Re-run after
+an editor upgrade so the theme covers any newly added colour keys, then run theme/build.py.
 
 Defaults are stored as small expression trees, so build.py can resolve them against the
 Greenpuccin palette instead of using VSCodium's own hex values:
@@ -16,7 +17,8 @@ Greenpuccin palette instead of using VSCodium's own hex values:
 """
 import collections, glob, json, os, re, sys
 
-APP = sys.argv[1] if len(sys.argv) > 1 else "/opt/vscodium-bin/resources/app"
+APPS = ["/opt/vscodium-bin/resources/app", "/usr/share/code/resources/app"]
+APP = sys.argv[1] if len(sys.argv) > 1 else next((a for a in APPS if os.path.isdir(a)), APPS[0])
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vscode-color-defaults.json")
 js = open(os.path.join(APP, "out/vs/workbench/workbench.desktop.main.js"), encoding="utf-8").read()
 

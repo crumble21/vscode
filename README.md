@@ -1,34 +1,60 @@
-# VSCodium: quiet UI config
+# VSCodium / VS Code: quiet UI config
 
 > [!IMPORTANT] 
 > **Agentically Engineered!**
 > 
 > Claude Code was used to create this configuration, install scripts, and documentation
 
-A minimal-chrome, glass-friendly VSCodium setup. Built for Arch + Hyprland and portable to macOS and Windows. It covers the UI only. The one extension it installs is its own colour theme, linked from this repo; nothing comes from a marketplace.
+A minimal-chrome, glass-friendly setup for **VSCodium or VS Code** (or both). Built for Arch + Hyprland and portable to macOS and Windows. It covers the UI only. The one extension it installs is its own colour theme, linked from this repo; nothing comes from a marketplace.
+
+Both editors use one shared config. At the same version they register the same settings and the same ~1000 colour keys, so nothing here is editor-specific. The few defaults that differ are pinned in `settings.json` (see [Differences between the editors](#differences-between-the-editors)).
 
 ```
-User/settings.json        portable UI settings (the main file)
-User/keybindings.json     toggles to bring hidden UI back on demand
-linux/codium-flags.conf   Electron launch flags (Arch vscodium-bin reads ~/.config/codium-flags.conf)
-linux/hypr/vscodium.lua   Hyprland opacity rule
-linux/codium-term         Hyprland launcher: opens VSCodium with the terminal panel focused
-theme/build.py            generates the Greenpuccin theme from the Figcraft export
-theme/greenpuccin/        the generated theme (a local extension; don't edit by hand)
-install.sh                Linux/macOS: symlinks everything, backs up what's there
-install.ps1               Windows: symlinks (or copies without Developer Mode)
+User/settings.json           portable UI settings (the main file, shared by both editors)
+User/keybindings.json        toggles to bring hidden UI back on demand
+linux/electron-flags.conf    Electron launch flags (Arch: linked as codium-flags.conf and code-flags.conf)
+linux/hypr/editor-glass.lua  Hyprland opacity rule
+linux/editor-term            Hyprland launcher: opens the editor with the terminal panel focused
+shell/editor.zsh             `codium`/`code` wrappers for the integrated terminal
+theme/build.py               generates the Greenpuccin theme from the Figcraft export
+theme/greenpuccin/           the generated theme (a local extension; don't edit by hand)
+install.sh                   Linux/macOS: symlinks everything, backs up what's there
+install.ps1                  Windows: symlinks (or copies without Developer Mode)
 ```
 
 ## Install
 
 ```sh
-./install.sh                 # Linux / macOS
-powershell -ExecutionPolicy Bypass -File .\install.ps1   # Windows (stock PowerShell 5.1 or pwsh 7)
+./install.sh                 # Linux / macOS: every installed editor (codium, code)
+./install.sh code            # just VS Code   (or: ./install.sh codium)
+powershell -ExecutionPolicy Bypass -File .\install.ps1          # Windows (stock PowerShell 5.1 or pwsh 7)
+powershell -ExecutionPolicy Bypass -File .\install.ps1 code     # just VS Code
 ```
 
-On Hyprland, add `require("vscodium")` to `~/.config/hypr/hyprland.lua` once.
+On Hyprland, add `require("editor-glass")` to `~/.config/hypr/hyprland.lua` once.
 
-Files are **symlinked**, so changes made in the Settings UI are written back to this repo.
+Re-running is safe: links already in place are left alone, anything else is moved to `<name>.bak.<timestamp>`.
+
+## Keeping machines in sync
+
+Everything is **symlinked**, not copied. The editor reads and writes this repo's files directly, so a change made in the Settings UI (or by an extension) shows up in `git diff`. To carry it to another machine:
+
+```sh
+git commit -am "…" && git push      # here
+git pull                            # there: takes effect on the next window reload
+```
+
+Run `./install.sh` once per machine; after that a `git pull` is all it takes. The exception is Windows without Developer Mode, where `install.ps1` falls back to copying `settings.json` / `keybindings.json`: re-run it after each pull.
+
+A symlink only survives if whatever writes the file writes *through* it. Both editors do. Tools that rewrite with `sed -i` or save to a temp file and rename it **replace the link with a plain file**, and edits silently stop reaching the repo. end4's dots do this on every wallpaper change (`material-code-set-color.sh`); the `crumble` branch of the fork skips symlinked settings files. Check with:
+
+```sh
+ls -l ~/.config/{VSCodium,Code}/User/settings.json   # both should be -> …/User/settings.json
+```
+
+If one turns into a plain file, diff it against `User/settings.json`, copy anything new into the repo, and re-run `./install.sh`.
+
+VS Code's **Settings Sync** also writes through the link, but it would then sync this config with whatever is in your Microsoft/GitHub account. Use one or the other, not both.
 
 ## What gets removed
 
@@ -38,7 +64,8 @@ Files are **symlinked**, so changes made in the Settings UI are written back to 
 | Menu bar | Hidden until you tap **Alt** |
 | Command center, layout controls, browser button | Off |
 | Activity bar | Moved into the side bar header (`"hidden"` removes it completely) |
-| Secondary side bar / chat | Hidden by default. Built-in AI surfaces disabled. |
+| Secondary side bar / chat | Hidden by default. Built-in AI surfaces disabled (third-party extensions like Claude Code are unaffected). |
+| Panel cards | VS Code's "modern UI" (rounded, gapped panels) is off, matching VSCodium |
 | Tabs | Compact height, shrink-to-fit, no × buttons, no split/… actions |
 | Breadcrumbs, minimap, sticky scroll, code lens, lightbulb | Off (toggle keys below) |
 | Inlay hints | Shown only while you hold **Ctrl+Alt** |
@@ -51,29 +78,48 @@ Files are **symlinked**, so changes made in the Settings UI are written back to 
 `theme/build.py` turns the Figcraft variables export (`theme/Greenpuccin.variables.json`) into two
 themes: **Greenpuccin Matcha** (dark, the default) and **Greenpuccin Sencha** (light). Every colour
 comes from the palette, sometimes with transparency added. The themes don't build on any built-in theme,
-and they set all ~900 colour keys VSCodium registers, so no stock colour shows through. The build
+and they set every colour key the editor registers (~1000), so no stock colour shows through. The build
 fails if any value falls outside the palette.
 
 How each colour is chosen:
 
 1. `EXPLICIT` in `build.py`: the design (one flat `Surface`, raised widgets, sunken inputs, green
    `Primary` accent, transparent dividers, terminal ANSI colours).
-2. Anything else follows VSCodium's own default for that key. References to other keys are kept, so
+2. Anything else follows the editor's own default for that key. References to other keys are kept, so
    most surfaces follow `editor.background`, as is transparency. Built-in hex values snap to the nearest palette colour.
 3. Syntax colours are the `TOKENS` and `SEMANTIC` tables (Catppuccin-style roles from `accent-text/*`).
 
-After a design-system change or a VSCodium upgrade:
+Colours contributed by extensions (Python, Docker, …) aren't covered; add any that clash to `EXPLICIT`.
+
+After a design-system change or an editor upgrade:
 
 ```sh
 cp ~/Downloads/Greenpuccin.variables.json theme/   # new export from Figcraft
-python3 -I theme/tools/extract-defaults.py           # after a VSCodium upgrade: picks up new colour keys
+python3 -I theme/tools/extract-defaults.py           # after an editor upgrade: picks up new colour keys
 python3 -I theme/build.py
 ```
 
+`extract-defaults.py` reads VSCodium (`/opt/vscodium-bin`) if it's installed, otherwise VS Code
+(`/usr/share/code`); pass another `resources/app` path to override.
+
 Then run **Developer: Reload Window**. The theme folder is linked, so you don't need to reinstall.
-`install.sh` links it to `~/.vscode-oss/extensions/local.greenpuccin` and registers it in
-`extensions.json` (it uses python3 for that step). Switch modes with Ctrl+K Ctrl+T, or set
+The installers link it to `~/.vscode-oss/extensions/local.greenpuccin` (VSCodium) and
+`~/.vscode/extensions/local.greenpuccin` (VS Code) and register it in each `extensions.json`
+(`install.sh` uses python3 for that step). Switch modes with Ctrl+K Ctrl+T, or set
 `window.autoDetectColorScheme` to follow the OS (the preferred dark and light themes are already set).
+
+## Differences between the editors
+
+| | VSCodium | VS Code |
+|---|---|---|
+| Settings dir (Linux) | `~/.config/VSCodium/User` | `~/.config/Code/User` |
+| Extensions dir | `~/.vscode-oss/extensions` | `~/.vscode/extensions` |
+| Launch flags (Arch) | `~/.config/codium-flags.conf` | `~/.config/code-flags.conf` |
+| Hyprland window class | `codium` | `com.microsoft.VSCode` |
+| `workbench.experimental.modernUI` default | off | **on**: pinned off in `settings.json` |
+| Extensions marketplace | Open VSX | Microsoft (some Microsoft extensions, e.g. Pylance, only exist here) |
+
+Both are handled by the installers and the Hyprland rule, so you can switch editors (or run both) with the same repo.
 
 ## Toggles
 
@@ -87,12 +133,14 @@ Then run **Developer: Reload Window**. The theme folder is linked, so you don't 
 
 ## Terminal-first launch (Hyprland)
 
-SUPER+SHIFT+N runs `~/.local/bin/codium-term`. It starts VSCodium, waits for the new window, then presses
-Ctrl+Alt+Shift+F12, which is bound to `workbench.action.terminal.focus` in `keybindings.json`. That command
-opens the terminal panel under the editor and puts the cursor in it. VSCodium has no setting for this, so the
-launcher is the extension-free workaround. On macOS/Windows, press the same combo yourself or bind it to something easier.
+`~/.local/bin/editor-term [codium|code]` starts the editor (codium if no editor is named and it's installed), waits
+for the new window, then presses Ctrl+Alt+Shift+F12, which is bound to `workbench.action.terminal.focus` in
+`keybindings.json`. That command opens the terminal panel under the editor and puts the cursor in it. Neither
+editor has a setting for this, so the launcher is the extension-free workaround. Bind it in Hyprland, e.g.
+`hl.dsp.exec_cmd("~/.local/bin/editor-term code")`. On macOS/Windows, press the same combo yourself or bind it
+to something easier.
 
-From that terminal:
+From that terminal (`codium` and `code` behave the same):
 
 | Command | Result |
 |---|---|
@@ -104,9 +152,9 @@ From that terminal:
 
 ## Transparency: how it works and its limits
 
-VSCodium (Electron) can't render a transparent background with opaque text without patching its files, which is what the "Vibrancy" extensions do. So transparency here comes from the compositor:
+Electron can't render a transparent background with opaque text without patching the editor's files, which is what the "Vibrancy" extensions do. So transparency here comes from the compositor:
 
-- **Hyprland:** `linux/hypr/vscodium.lua` sets the window to 0.88 opacity when active and 0.80 when inactive, on top of your existing blur. Text fades along with the background, which is why the theme flattens all surfaces to a single colour: the result looks like one pane of glass instead of mismatched greys. To try values live: `hyprctl setprop class:codium opacity 0.9`.
+- **Hyprland:** `linux/hypr/editor-glass.lua` sets VSCodium and VS Code windows to 0.88 opacity when active and 0.80 when inactive, on top of your existing blur. Text fades along with the background, which is why the theme flattens all surfaces to a single colour: the result looks like one pane of glass instead of mismatched greys. To try values live: `hyprctl setprop class:codium opacity 0.9` (or `class:com.microsoft.VSCode`).
 - **macOS / Windows:** there's no compositor rule. The config still gives the flat, borderless look but the window stays opaque. For real translucency there, add an OS-level tool (e.g. a window-opacity utility) or a vibrancy extension later.
 
 ## Platform gaps (macOS / Windows)
@@ -115,14 +163,14 @@ VSCodium (Electron) can't render a transparent background with opaque text witho
 
 | Linux feature | Elsewhere | Possible fix |
 |---|---|---|
-| Glass transparency (`linux/hypr/vscodium.lua`) | Window is opaque but keeps the flat, borderless look | Third-party window-opacity tool, or a vibrancy extension |
-| SUPER+SHIFT+N opens with the terminal focused (`linux/codium-term`) | No launcher: open VSCodium, then press Ctrl+` | OS shortcut tool (AutoHotkey / Raycast) that launches and sends Ctrl+Alt+Shift+F12 |
-| `codium file` hides the panel (`shell/vscodium.zsh`) | File opens in the same window; panel stays open | Press Ctrl+J, or script the key press with the same kind of tool |
+| Glass transparency (`linux/hypr/editor-glass.lua`) | Window is opaque but keeps the flat, borderless look | Third-party window-opacity tool, or a vibrancy extension |
+| Terminal-focused launch (`linux/editor-term`) | No launcher: open the editor, then press Ctrl+` | OS shortcut tool (AutoHotkey / Raycast) that launches and sends Ctrl+Alt+Shift+F12 |
+| `codium file` / `code file` hides the panel (`shell/editor.zsh`) | File opens in the same window; panel stays open | Press Ctrl+J, or script the key press with the same kind of tool |
 | `codium folder` reuses the window | Opens a new window | Type `codium -r folder`, or add a PowerShell profile function. On macOS the zsh wrapper only activates under Hyprland, so its folder handling would need moving out of that check |
 | `vc` alias | Lives in zsh-starship-setup, so it isn't there on Windows | `Set-Alias vc codium` in `$PROFILE` |
-| `codium-flags.conf` | Linux only | Not needed |
+| `electron-flags.conf` | Linux only | Not needed |
 
-Windows install notes: symlinks need Developer Mode or an admin shell, and without either `install.ps1` copies the files instead (re-run it after editing). It targets `%APPDATA%\VSCodium\User`, so the portable zip build, which keeps settings in its own `data` folder, isn't covered. Neither `install.ps1` nor the macOS path of `install.sh` has been tested yet.
+Windows install notes: symlinks need Developer Mode or an admin shell, and without either `install.ps1` copies the settings files instead (re-run it after editing). It targets `%APPDATA%\VSCodium\User` and `%APPDATA%\Code\User`, so the portable zip builds, which keep settings in their own `data` folder, aren't covered. Neither `install.ps1` nor the macOS path of `install.sh` has been tested yet.
 
 The macOS title bar is the native one (traffic lights), and `SF Mono` in the font list only resolves if it's installed system-wide, otherwise Menlo is used.
 
@@ -130,6 +178,6 @@ The macOS title bar is the native one (traffic lights), and `SF Mono` in the fon
 
 - `workbench.editor.showTabs: "single"`: one title instead of a tab strip, navigate with Ctrl+P
 - `workbench.activityBar.location: "hidden"` + `workbench.statusBar.visible: false`: editor-only, with everything reached by keyboard
-- Feed the Greenpuccin export into Noctalia too, so the shell matches VSCodium
+- Feed the Greenpuccin export into the end4 shell too, so the desktop matches the editor
 - Extensions: Custom CSS / Vibrancy for true background-only transparency, an icon theme
-- Hide the VSCodium logo on empty editors: Custom CSS `.letterpress { display: none }`. No setting exists for it, and swapping `out/media/letterpress-*.svg` needs root and comes back with every update
+- Hide the logo on empty editors: Custom CSS `.letterpress { display: none }`. No setting exists for it, and swapping `out/media/letterpress-*.svg` needs root and comes back with every update
