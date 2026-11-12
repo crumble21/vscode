@@ -14,14 +14,14 @@ local M = {}
 -- while keeping code legible. Go lower on inactive since you're not reading it.
 M.rule = hl.window_rule({
     name    = "vscodium-glass",
-    match   = { class = "^(codium|VSCodium)$" },
+    match   = { class = "^(codium|VSCodium|code|com\\.microsoft\\.VSCode)$" },
     opacity = "0.88 0.80",
 })
 
 -- Popups (file pickers, menus) are separate surfaces; keep them crisp.
 M.popups = hl.window_rule({
     name    = "vscodium-dialogs-opaque",
-    match   = { class = "^(codium|VSCodium)$", float = true },
+    match   = { class = "^(codium|VSCodium|code|com\\.microsoft\\.VSCode)$", float = true },
     opacity = "1.0 1.0",
 })
 
